@@ -6,7 +6,18 @@ import (
 	"strings"
 )
 
-type WorkspaceClient struct {
+type WorkspaceClient interface {
+	GetByName(name string) (*Workspace, error)
+	Get(id string) (*Workspace, error)
+	List(query *WorkspaceQueryString) ([]*Workspace, error)
+	Create(workspaceRequest *WorkspaceRequest) (*Workspace, error)
+	Update(workspaceRequest *WorkspaceRequest) (*Workspace, error)
+	Delete() error
+	ListEntities() ([]*WorkspaceEntity, error)
+	DeleteMultipleEntitiesFromWorkspace(entityIds []string) error
+}
+
+type workspaceClient struct {
 	config *Config
 }
 
@@ -54,11 +65,11 @@ type WorkspaceEntities struct {
 
 const WorkspacesPath = "/workspaces/"
 
-func (workspaceClient *WorkspaceClient) GetByName(name string) (*Workspace, error) {
+func (workspaceClient *workspaceClient) GetByName(name string) (*Workspace, error) {
 	return workspaceClient.Get(name)
 }
 
-func (workspaceClient *WorkspaceClient) Get(id string) (*Workspace, error) {
+func (workspaceClient *workspaceClient) Get(id string) (*Workspace, error) {
 	r, body, errs := newRawGet(workspaceClient.config, workspaceClient.config.HostAddress+WorkspacesPath+id).End()
 	if errs != nil {
 		return nil, fmt.Errorf("could not get workspace, error: %v", errs)
@@ -85,7 +96,7 @@ func (workspaceClient *WorkspaceClient) Get(id string) (*Workspace, error) {
 	return workspace, nil
 }
 
-func (workspaceClient *WorkspaceClient) List(query *WorkspaceQueryString) ([]*Workspace, error) {
+func (workspaceClient *workspaceClient) List(query *WorkspaceQueryString) ([]*Workspace, error) {
 	workspaces := make([]*Workspace, 0)
 
 	if query.Size < 100 {
@@ -129,7 +140,7 @@ func (workspaceClient *WorkspaceClient) List(query *WorkspaceQueryString) ([]*Wo
 	return workspaces, nil
 }
 
-func (workspaceClient *WorkspaceClient) Create(workspaceRequest *WorkspaceRequest) (*Workspace, error) {
+func (workspaceClient *workspaceClient) Create(workspaceRequest *WorkspaceRequest) (*Workspace, error) {
 	r, body, errs := newRawPost(workspaceClient.config, workspaceClient.config.HostAddress+WorkspacesPath).Send(workspaceRequest).End()
 	if errs != nil {
 		return nil, fmt.Errorf("could not create new workspace, error: %v", errs)
@@ -156,7 +167,7 @@ func (workspaceClient *WorkspaceClient) Create(workspaceRequest *WorkspaceReques
 	return workspace, nil
 }
 
-func (workspaceClient *WorkspaceClient) Update(workspaceRequest *WorkspaceRequest) (*Workspace, error) {
+func (workspaceClient *workspaceClient) Update(workspaceRequest *WorkspaceRequest) (*Workspace, error) {
 	requestPath := fmt.Sprintf(
 		"%s%s%s",
 		workspaceClient.config.HostAddress,
@@ -189,7 +200,7 @@ func (workspaceClient *WorkspaceClient) Update(workspaceRequest *WorkspaceReques
 	return workspace, nil
 }
 
-func (workspaceClient *WorkspaceClient) Delete() error {
+func (workspaceClient *workspaceClient) Delete() error {
 	requestPath := fmt.Sprintf(
 		"%s%s%s",
 		workspaceClient.config.HostAddress,
@@ -212,7 +223,7 @@ func (workspaceClient *WorkspaceClient) Delete() error {
 	return nil
 }
 
-func (workspaceClient *WorkspaceClient) ListEntities() ([]*WorkspaceEntity, error) {
+func (workspaceClient *workspaceClient) ListEntities() ([]*WorkspaceEntity, error) {
 	requestPath := fmt.Sprintf(
 		"%s%s/entities",
 		workspaceClient.config.HostAddress+WorkspacesPath,
@@ -240,7 +251,7 @@ func (workspaceClient *WorkspaceClient) ListEntities() ([]*WorkspaceEntity, erro
 	return workspaceEntities.Data, nil
 }
 
-func (workspaceClient *WorkspaceClient) DeleteMultipleEntitiesFromWorkspace(entityIds []string) error {
+func (workspaceClient *workspaceClient) DeleteMultipleEntitiesFromWorkspace(entityIds []string) error {
 	requestPath := fmt.Sprintf(
 		"%s%s/entities",
 		workspaceClient.config.HostAddress+WorkspacesPath,

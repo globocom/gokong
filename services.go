@@ -5,37 +5,52 @@ import (
 	"fmt"
 )
 
-type ServiceClient struct {
+type ServiceClient interface {
+	Create(serviceRequest *ServiceRequest) (*Service, error)
+	GetServiceByName(name string) (*Service, error)
+	GetServiceById(id string) (*Service, error)
+	GetServiceFromRouteId(id string) (*Service, error)
+	GetServices(query *ServiceQueryString) ([]*Service, error)
+	UpdateServiceByName(name string, serviceRequest *ServiceRequest) (*Service, error)
+	UpdateServiceById(id string, serviceRequest *ServiceRequest) (*Service, error)
+	UpdateServicebyRouteId(id string, serviceRequest *ServiceRequest) (*Service, error)
+	DeleteServiceByName(name string) error
+	DeleteServiceById(id string) error
+}
+
+type serviceClient struct {
 	config *Config
 }
 
 type ServiceRequest struct {
-	Name           *string `json:"name" yaml:"name"`
-	Protocol       *string `json:"protocol" yaml:"protocol"`
-	Host           *string `json:"host" yaml:"host"`
-	Port           *int    `json:"port,omitempty" yaml:"port,omitempty"`
-	Path           *string `json:"path,omitempty" yaml:"path,omitempty"`
-	Retries        *int    `json:"retries,omitempty" yaml:"retries,omitempty"`
-	ConnectTimeout *int    `json:"connect_timeout,omitempty" yaml:"connect_timeout,omitempty"`
-	WriteTimeout   *int    `json:"write_timeout,omitempty" yaml:"write_timeout,omitempty"`
-	ReadTimeout    *int    `json:"read_timeout,omitempty" yaml:"read_timeout,omitempty"`
-	Url            *string `json:"url,omitempty" yaml:"url,omitempty"`
+	Name           *string   `json:"name" yaml:"name"`
+	Protocol       *string   `json:"protocol" yaml:"protocol"`
+	Host           *string   `json:"host" yaml:"host"`
+	Port           *int      `json:"port,omitempty" yaml:"port,omitempty"`
+	Path           *string   `json:"path,omitempty" yaml:"path,omitempty"`
+	Retries        *int      `json:"retries,omitempty" yaml:"retries,omitempty"`
+	ConnectTimeout *int      `json:"connect_timeout,omitempty" yaml:"connect_timeout,omitempty"`
+	WriteTimeout   *int      `json:"write_timeout,omitempty" yaml:"write_timeout,omitempty"`
+	ReadTimeout    *int      `json:"read_timeout,omitempty" yaml:"read_timeout,omitempty"`
+	Url            *string   `json:"url,omitempty" yaml:"url,omitempty"`
+	Tags           []*string `json:"tags,omitempty" yaml:"tags,omitempty"`
 }
 
 type Service struct {
-	Id             *string `json:"id" yaml:"id"`
-	CreatedAt      *int    `json:"created_at" yaml:"created_at"`
-	UpdatedAt      *int    `json:"updated_at" yaml:"updated_at"`
-	Protocol       *string `json:"protocol" yaml:"protocol"`
-	Host           *string `json:"host" yaml:"host"`
-	Port           *int    `json:"port" yaml:"port"`
-	Path           *string `json:"path" yaml:"path"`
-	Name           *string `json:"name" yaml:"name"`
-	Retries        *int    `json:"retries" yaml:"retries"`
-	ConnectTimeout *int    `json:"connect_timeout" yaml:"connect_timeout"`
-	WriteTimeout   *int    `json:"write_timeout" yaml:"write_timeout"`
-	ReadTimeout    *int    `json:"read_timeout" yaml:"read_timeout"`
-	Url            *string `json:"url" yaml:"url"`
+	Id             *string   `json:"id" yaml:"id"`
+	CreatedAt      *int      `json:"created_at" yaml:"created_at"`
+	UpdatedAt      *int      `json:"updated_at" yaml:"updated_at"`
+	Protocol       *string   `json:"protocol" yaml:"protocol"`
+	Host           *string   `json:"host" yaml:"host"`
+	Port           *int      `json:"port" yaml:"port"`
+	Path           *string   `json:"path" yaml:"path"`
+	Name           *string   `json:"name" yaml:"name"`
+	Retries        *int      `json:"retries" yaml:"retries"`
+	ConnectTimeout *int      `json:"connect_timeout" yaml:"connect_timeout"`
+	WriteTimeout   *int      `json:"write_timeout" yaml:"write_timeout"`
+	ReadTimeout    *int      `json:"read_timeout" yaml:"read_timeout"`
+	Url            *string   `json:"url" yaml:"url"`
+	Tags           []*string `json:"tags,omitempty" yaml:"tags,omitempty"`
 }
 
 type Services struct {
@@ -51,7 +66,7 @@ type ServiceQueryString struct {
 
 const ServicesPath = "/services/"
 
-func (serviceClient *ServiceClient) Create(serviceRequest *ServiceRequest) (*Service, error) {
+func (serviceClient *serviceClient) Create(serviceRequest *ServiceRequest) (*Service, error) {
 	if serviceRequest.Port == nil {
 		serviceRequest.Port = Int(80)
 	}
@@ -81,6 +96,10 @@ func (serviceClient *ServiceClient) Create(serviceRequest *ServiceRequest) (*Ser
 		return nil, fmt.Errorf("not authorised, message from kong: %s", body)
 	}
 
+	if r.StatusCode == 400 {
+		return nil, fmt.Errorf("bad request, message from kong: %s", body)
+	}
+
 	createdService := &Service{}
 	err := json.Unmarshal([]byte(body), createdService)
 	if err != nil {
@@ -94,19 +113,19 @@ func (serviceClient *ServiceClient) Create(serviceRequest *ServiceRequest) (*Ser
 	return createdService, nil
 }
 
-func (serviceClient *ServiceClient) GetServiceByName(name string) (*Service, error) {
+func (serviceClient *serviceClient) GetServiceByName(name string) (*Service, error) {
 	return serviceClient.GetServiceById(name)
 }
 
-func (serviceClient *ServiceClient) GetServiceById(id string) (*Service, error) {
+func (serviceClient *serviceClient) GetServiceById(id string) (*Service, error) {
 	return serviceClient.getService(ServicesPath + id)
 }
 
-func (serviceClient *ServiceClient) GetServiceFromRouteId(id string) (*Service, error) {
+func (serviceClient *serviceClient) GetServiceFromRouteId(id string) (*Service, error) {
 	return serviceClient.getService("/routes/" + id + "/service")
 }
 
-func (serviceClient *ServiceClient) getService(endpoint string) (*Service, error) {
+func (serviceClient *serviceClient) getService(endpoint string) (*Service, error) {
 	r, body, errs := newGet(serviceClient.config, endpoint).End()
 	if errs != nil {
 		return nil, fmt.Errorf("could not get the service, error: %v", errs)
@@ -129,7 +148,7 @@ func (serviceClient *ServiceClient) getService(endpoint string) (*Service, error
 	return service, nil
 }
 
-func (serviceClient *ServiceClient) GetServices(query *ServiceQueryString) ([]*Service, error) {
+func (serviceClient *serviceClient) GetServices(query *ServiceQueryString) ([]*Service, error) {
 	services := make([]*Service, 0)
 
 	if query.Size == 0 || query.Size < 100 {
@@ -169,26 +188,30 @@ func (serviceClient *ServiceClient) GetServices(query *ServiceQueryString) ([]*S
 	return services, nil
 }
 
-func (serviceClient *ServiceClient) UpdateServiceByName(name string, serviceRequest *ServiceRequest) (*Service, error) {
+func (serviceClient *serviceClient) UpdateServiceByName(name string, serviceRequest *ServiceRequest) (*Service, error) {
 	return serviceClient.UpdateServiceById(name, serviceRequest)
 }
 
-func (serviceClient *ServiceClient) UpdateServiceById(id string, serviceRequest *ServiceRequest) (*Service, error) {
+func (serviceClient *serviceClient) UpdateServiceById(id string, serviceRequest *ServiceRequest) (*Service, error) {
 	return serviceClient.updateService(ServicesPath+id, serviceRequest)
 }
 
-func (serviceClient *ServiceClient) UpdateServicebyRouteId(id string, serviceRequest *ServiceRequest) (*Service, error) {
+func (serviceClient *serviceClient) UpdateServicebyRouteId(id string, serviceRequest *ServiceRequest) (*Service, error) {
 	return serviceClient.updateService("/routes/"+id+"/service", serviceRequest)
 }
 
-func (serviceClient *ServiceClient) DeleteServiceByName(name string) error {
+func (serviceClient *serviceClient) DeleteServiceByName(name string) error {
 	return serviceClient.DeleteServiceById(name)
 }
 
-func (serviceClient *ServiceClient) DeleteServiceById(id string) error {
+func (serviceClient *serviceClient) DeleteServiceById(id string) error {
 	r, body, errs := newDelete(serviceClient.config, ServicesPath+id).End()
 	if errs != nil {
 		return fmt.Errorf("could not delete the service, result: %v error: %v", r, errs)
+	}
+
+	if r.StatusCode == 400 {
+		return fmt.Errorf("bad request, message from kong: %s", body)
 	}
 
 	if r.StatusCode == 401 || r.StatusCode == 403 {
@@ -198,7 +221,7 @@ func (serviceClient *ServiceClient) DeleteServiceById(id string) error {
 	return nil
 }
 
-func (serviceClient *ServiceClient) updateService(requestPath string, serviceRequest *ServiceRequest) (*Service, error) {
+func (serviceClient *serviceClient) updateService(requestPath string, serviceRequest *ServiceRequest) (*Service, error) {
 	r, body, errs := newPatch(serviceClient.config, requestPath).Send(serviceRequest).End()
 	if errs != nil {
 		return nil, fmt.Errorf("could not update service, error: %v", errs)
@@ -206,6 +229,10 @@ func (serviceClient *ServiceClient) updateService(requestPath string, serviceReq
 
 	if r.StatusCode == 401 || r.StatusCode == 403 {
 		return nil, fmt.Errorf("not authorised, message from kong: %s", body)
+	}
+
+	if r.StatusCode == 400 {
+		return nil, fmt.Errorf("bad request, message from kong: %s", body)
 	}
 
 	updatedService := &Service{}

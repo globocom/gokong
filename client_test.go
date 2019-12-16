@@ -10,7 +10,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kevholditch/gokong/containers"
+	"github.com/globocom/gokong/containers"
 	"github.com/phayes/freeport"
 
 	"github.com/stretchr/testify/assert"

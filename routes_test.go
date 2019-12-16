@@ -109,20 +109,11 @@ func TestRoutes_CreateWithBadRequest(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, createdService)
 
-	routeRequest := &RouteRequest{
-		Protocols:    StringSlice([]string{"http"}),
-		Methods:      StringSlice([]string{"GET"}),
-		Hosts:        StringSlice([]string{"foo.com"}),
-		Paths:        StringSlice([]string{"/foo"}),
-		StripPath:    Bool(true),
-		PreserveHost: Bool(true),
-	}
-
-	createdRoute, err := client.Routes().Create(routeRequest)
-
+	createdRoute, err := client.Routes().Create(&RouteRequest{})
 	assert.Nil(t, createdRoute)
-	errorMessage := `bad request, message from kong: {"message":"schema violation (service: required field missing)","name":"schema violation","fields":{"service":"required field missing"},"code":2}`
-	assert.Equal(t, err.Error(), errorMessage)
+
+	errorMessage := "bad request, message from kong: {\"message\":\"schema violation (protocols: required field missing)\",\"name\":\"schema violation\",\"fields\":{\"protocols\":\"required field missing\"},\"code\":2}"
+	assert.Equal(t, errorMessage, err.Error())
 
 	err = client.Services().DeleteServiceById(*createdService.Id)
 	assert.Nil(t, err)

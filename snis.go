@@ -5,18 +5,28 @@ import (
 	"fmt"
 )
 
-type SnisClient struct {
+type SnisClient interface {
+	Create(snisRequest *SnisRequest) (*Sni, error)
+	GetByName(name string) (*Sni, error)
+	List() (*Snis, error)
+	DeleteByName(name string) error
+	UpdateByName(name string, snisRequest *SnisRequest) (*Sni, error)
+}
+
+type snisClient struct {
 	config *Config
 }
 
 type SnisRequest struct {
-	Name          string `json:"name,omitempty" yaml:"name,omitempty"`
-	CertificateId *Id    `json:"certificate,omitempty" yaml:"certificate,omitempty"`
+	Name          string    `json:"name,omitempty" yaml:"name,omitempty"`
+	CertificateId *Id       `json:"certificate,omitempty" yaml:"certificate,omitempty"`
+	Tags          []*string `json:"tags,omitempty" yaml:"tags,omitempty"`
 }
 
 type Sni struct {
-	Name          string `json:"name,omitempty" yaml:"name,omitempty"`
-	CertificateId *Id    `json:"certificate,omitempty" yaml:"certificate,omitempty"`
+	Name          string    `json:"name,omitempty" yaml:"name,omitempty"`
+	CertificateId *Id       `json:"certificate,omitempty" yaml:"certificate,omitempty"`
+	Tags          []*string `json:"tags,omitempty" yaml:"tags,omitempty"`
 }
 
 type Snis struct {
@@ -26,7 +36,7 @@ type Snis struct {
 
 const SnisPath = "/snis/"
 
-func (snisClient *SnisClient) Create(snisRequest *SnisRequest) (*Sni, error) {
+func (snisClient *snisClient) Create(snisRequest *SnisRequest) (*Sni, error) {
 	r, body, errs := newPost(snisClient.config, SnisPath).Send(snisRequest).End()
 	if errs != nil {
 		return nil, fmt.Errorf("could not create new sni, error: %v", errs)
@@ -49,7 +59,7 @@ func (snisClient *SnisClient) Create(snisRequest *SnisRequest) (*Sni, error) {
 	return sni, nil
 }
 
-func (snisClient *SnisClient) GetByName(name string) (*Sni, error) {
+func (snisClient *snisClient) GetByName(name string) (*Sni, error) {
 	r, body, errs := newGet(snisClient.config, SnisPath+name).End()
 	if errs != nil {
 		return nil, fmt.Errorf("could not get sni, error: %v", errs)
@@ -72,7 +82,7 @@ func (snisClient *SnisClient) GetByName(name string) (*Sni, error) {
 	return sni, nil
 }
 
-func (snisClient *SnisClient) List() (*Snis, error) {
+func (snisClient *snisClient) List() (*Snis, error) {
 	r, body, errs := newGet(snisClient.config, SnisPath).End()
 	if errs != nil {
 		return nil, fmt.Errorf("could not get snis, error: %v", errs)
@@ -91,7 +101,7 @@ func (snisClient *SnisClient) List() (*Snis, error) {
 	return snis, nil
 }
 
-func (snisClient *SnisClient) DeleteByName(name string) error {
+func (snisClient *snisClient) DeleteByName(name string) error {
 	r, body, errs := newDelete(snisClient.config, SnisPath+name).End()
 	if errs != nil {
 		return fmt.Errorf("could not delete sni, result: %v error: %v", r, errs)
@@ -104,7 +114,7 @@ func (snisClient *SnisClient) DeleteByName(name string) error {
 	return nil
 }
 
-func (snisClient *SnisClient) UpdateByName(name string, snisRequest *SnisRequest) (*Sni, error) {
+func (snisClient *snisClient) UpdateByName(name string, snisRequest *SnisRequest) (*Sni, error) {
 	r, body, errs := newPatch(snisClient.config, SnisPath+name).Send(snisRequest).End()
 	if errs != nil {
 		return nil, fmt.Errorf("could not update sni, error: %v", errs)
