@@ -43,6 +43,7 @@ func Test_CertificatesCreate(t *testing.T) {
 	certificateRequest := &CertificateRequest{
 		Cert: String(testCert1),
 		Key:  String(testKey1),
+		Tags: []*string{String("my-tag")},
 	}
 
 	client := NewClient(NewDefaultConfig())
@@ -53,6 +54,7 @@ func Test_CertificatesCreate(t *testing.T) {
 	assert.True(t, result.Id != nil)
 	assert.Equal(t, certificateRequest.Cert, result.Cert)
 	assert.Equal(t, certificateRequest.Key, result.Key)
+	assert.Equal(t, certificateRequest.Tags, result.Tags)
 
 	err = client.Certificates().DeleteById(*result.Id)
 	assert.Nil(t, err)

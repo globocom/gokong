@@ -16,6 +16,7 @@ func TestServiceClient_GetServiceById(t *testing.T) {
 		Protocol: String("http"),
 		Host:     String("foo.com"),
 		Port:     Int(8080),
+		Tags:     []*string{String("my-tag")},
 	}
 
 	client := NewClient(NewDefaultConfig())
@@ -28,6 +29,7 @@ func TestServiceClient_GetServiceById(t *testing.T) {
 	assert.EqualValues(t, createdService.Protocol, serviceRequest.Protocol)
 	assert.EqualValues(t, createdService.Host, serviceRequest.Host)
 	assert.EqualValues(t, createdService.Port, serviceRequest.Port)
+	assert.EqualValues(t, createdService.Tags, serviceRequest.Tags)
 
 	result, err := client.Services().GetServiceById(*createdService.Id)
 
