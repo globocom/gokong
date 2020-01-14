@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const defaultKongVersion = "1.0.2"
+const defaultKongVersion = "1.4"
 const defaultDockerfilePath = ""
 const kong401Server = "KONG_401_SERVER"
 
