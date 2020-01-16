@@ -196,11 +196,9 @@ func Test_CreateShouldRerturnErrorWhenBadRequest(t *testing.T) {
 
 	client := NewClient(NewDefaultConfig())
 	createdService, err := client.Services().Create(serviceRequest)
-
-	errorMessage := `bad request, message from kong: {"message":"schema violation (host: required field missing)","name":"schema violation","fields":{"host":"required field missing"},"code":2}`
-
 	assert.Nil(t, createdService)
-	assert.Equal(t, err.Error(), errorMessage)
+	assert.Contains(t, err.Error(), "bad request, message from kong")
+	assert.Contains(t, err.Error(), "schema violation (host: required field missing)")
 }
 
 func Test_UpdateShouldRerturnErrorWhenBadRequest(t *testing.T) {
@@ -212,7 +210,6 @@ func Test_UpdateShouldRerturnErrorWhenBadRequest(t *testing.T) {
 
 	client := NewClient(NewDefaultConfig())
 	createdService, err := client.Services().Create(serviceRequest)
-
 	assert.Nil(t, err)
 
 	serviceRequestUpdate := &ServiceRequest{
@@ -220,13 +217,10 @@ func Test_UpdateShouldRerturnErrorWhenBadRequest(t *testing.T) {
 		Host:     createdService.Host,
 		Protocol: String("foo"),
 	}
-
-	errorMessage := `bad request, message from kong: {"message":"schema violation (protocol: expected one of: http, https, tcp, tls)","name":"schema violation","fields":{"protocol":"expected one of: http, https, tcp, tls"},"code":2}`
-
 	updatedService, err := client.Services().UpdateServiceById(*createdService.Id, serviceRequestUpdate)
-
 	assert.Nil(t, updatedService)
-	assert.Equal(t, err.Error(), errorMessage)
+	assert.Contains(t, err.Error(), "bad request, message from kong")
+	assert.Contains(t, err.Error(), "schema violation (protocol: expected one of:")
 
 	err = client.Services().DeleteServiceById(*createdService.Id)
 	assert.Nil(t, err)

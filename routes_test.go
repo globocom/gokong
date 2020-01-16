@@ -486,9 +486,7 @@ func Test_UpateRouteShouldReturnErrorWhenBadRequest(t *testing.T) {
 	}
 
 	client := NewClient(NewDefaultConfig())
-
 	createdService, err := client.Services().Create(serviceRequest)
-
 	assert.Nil(t, err)
 	assert.NotNil(t, createdService)
 
@@ -501,20 +499,15 @@ func Test_UpateRouteShouldReturnErrorWhenBadRequest(t *testing.T) {
 		PreserveHost: Bool(true),
 		Service:      ToId(*createdService.Id),
 	}
-
 	createdRoute, err := client.Routes().Create(routeRequest)
-
 	assert.Nil(t, err)
 	assert.NotNil(t, createdRoute)
 
 	routeRequest.Protocols = StringSlice([]string{"invalidProtocol"})
-
 	updatedRoute, err := client.Routes().UpdateById(*createdRoute.Id, routeRequest)
-
-	errorMessage := `bad request, message from kong: {"message":"schema violation (protocols: expected one of: http, https, tcp, tls)","name":"schema violation","fields":{"protocols":"expected one of: http, https, tcp, tls"},"code":2}`
-
 	assert.Nil(t, updatedRoute)
-	assert.Equal(t, err.Error(), errorMessage)
+	assert.Contains(t, err.Error(), "bad request, message from kong")
+	assert.Contains(t, err.Error(), "schema violation (protocols")
 
 	err = client.Routes().DeleteById(*createdRoute.Id)
 	assert.Nil(t, err)
