@@ -28,6 +28,7 @@ type KongAdminClient interface {
 	Routes() RouteClient
 	Services() ServiceClient
 	Targets() TargetClient
+	Workspaces() WorkspaceClient
 }
 
 type kongAdminClient struct {
